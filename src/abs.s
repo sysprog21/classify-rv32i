@@ -20,9 +20,11 @@ abs:
     # Load number from memory
     lw t0 0(a0)
     bge t0, zero, done
-
+    
+    sub t0, zero, t0         # Positive number
+    sw  t0, 0(a0)            # store back
     # TODO: Add your own implementation
-
+    
 done:
     # Epilogue
     jr ra

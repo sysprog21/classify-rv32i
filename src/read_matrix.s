@@ -73,10 +73,23 @@ read_matrix:
 
     sw t1, 0(s3)     # saves num rows
     sw t2, 0(s4)     # saves num cols
-
+#################################################################################
     # mul s1, t1, t2   # s1 is number of elements
     # FIXME: Replace 'mul' with your own implementation
+    li      s1, 0             # Clear s1 (result)
+    li      t3, 0             # Clear t3 (bit counter)
+    li      t4, 32
+mul_loop:
+    andi    t0, t2, 1         # t4 = t2 & 1 (check if least significant bit of multiplier is 1)
+    beqz    t0, skip_add      # If t4 is zero, skip addition
+    add     s1, s1, t1        # Add t1 (multiplicand) to result
 
+skip_add:
+    slli    t1, t1, 1         # Shift multiplicand left by 1 (multiply by 2)
+    srli    t2, t2, 1         # Shift multiplier right by 1 (divide by 2)
+    addi    t3, t3, 1         # Increment bit counter
+    blt     t3, t4, mul_loop  # Repeat for 32 bits
+#################################################################################
     slli t3, s1, 2
     sw t3, 24(sp)    # size in bytes
 

@@ -60,9 +60,23 @@ write_matrix:
 
     li t0, 2
     bne a0, t0, fwrite_error
-
+#################################################################################
     # mul s4, s2, s3   # s4 = total elements
     # FIXME: Replace 'mul' with your own implementation
+    li      s4, 0             # Clear s4 (result)
+    li      t0, 0             # Clear t2 (bit counter)
+    li      t1, 32
+mul_loop:
+    andi    t2, s3, 1         # t2 = s3 & 1 (check if least significant bit of multiplier is 1)
+    beqz    t2, skip_add      # If t2 is zero, skip addition
+    add     s4, s4, s2        # Add t0 (multiplicand) to result
+
+skip_add:
+    slli    s2, s2, 1         # Shift multiplicand left by 1 (multiply by 2)
+    srli    s3, s3, 1         # Shift multiplier right by 1 (divide by 2)
+    addi    t0, t0, 1         # Increment bit counter
+    blt     t0, t1, mul_loop  # Repeat for 32 bits
+#################################################################################
 
     # write matrix data to file
     mv a0, s0
