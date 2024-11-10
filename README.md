@@ -1,3 +1,13 @@
 # Assignment 2: Classify
 
-TODO: Add your own descriptions here.
+## abs
+
+## argmax 
+
+## dot 
+
+## read matrix
+
+## relu
+
+## write matrix
