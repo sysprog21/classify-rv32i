@@ -53,7 +53,7 @@ matmul:
     sw s4, 20(sp)
     sw s5, 24(sp)
     
-    li s0, 0 # outer loop counter
+    li s0, 0 # outer loop counter 
     li s1, 0 # inner loop counter
     mv s2, a6 # incrementing result matrix pointer
     mv s3, a0 # incrementing matrix A pointer, increments durring outer loop
@@ -61,7 +61,11 @@ matmul:
     
 outer_loop_start:
     #s0 is going to be the loop counter for the rows in A
-    li s1, 0
+    # Assume m0 is 2*3 matrix  , m1 is 3*2 matrix
+    # m0 = [ 1 2 3 ]    m1 = [ 7  8  ]
+    #      [ 4 5 6 ]         [ 9  10 ]
+    #                        [ 11 12 ]
+    li s1, 0    # j = 0
     mv s4, a3
     blt s0, a1, inner_loop_start
 
@@ -77,7 +81,7 @@ inner_loop_start:
 #   a4 (int)  is the stride of arr1 = for B, stride = len(rows) - 1
 # Returns:
 #   a0 (int)  is the dot product of arr0 and arr1
-    beq s1, a5, inner_loop_end
+    beq s1, a5, inner_loop_end   
 
     addi sp, sp, -24
     sw a0, 0(sp)
@@ -111,11 +115,31 @@ inner_loop_start:
     li t1, 4
     add s4, s4, t1 # incrememtning the column on Matrix B
     
-    addi s1, s1, 1
+    addi s1, s1, 1 # j++
     j inner_loop_start
-    
+#a[0][0~n    
 inner_loop_end:
+    # Assume m0 is 2*3 matrix  , m1 is 3*2 matrix
+    # m0 = [ 1 2 3 ]    m1 = [ 7  8  ]
+    #      [ 4 5 6 ]         [ 9  10 ]
+    #                        [ 11 12 ]
     # TODO: Add your own implementation
+    addi s0, s0, 1  # i++ next column
+    slli t0, a2, 2  # total length of m0 row
+    add  s3, s3, t0 # incrementing m0 pointer
+    j    outer_loop_start  
+    
+outer_loop_end:
+    # Epilogue
+    lw ra, 0(sp)
+    lw s0, 4(sp)
+    lw s1, 8(sp)
+    lw s2, 12(sp)
+    lw s3, 16(sp)
+    lw s4, 20(sp)
+    lw s5, 24(sp)
+    addi sp, sp, 28
+    ret
 
 error:
     li a0, 38

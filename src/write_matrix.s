@@ -61,9 +61,21 @@ write_matrix:
     li t0, 2
     bne a0, t0, fwrite_error
 
+#=======================================================================================
     # mul s4, s2, s3   # s4 = total elements
     # FIXME: Replace 'mul' with your own implementation
+    li s4, 0           # Initialize s4
+mul_loop:
+    andi t0, s3, 1     # check the lsb of multiplier
+    beqz t0, skip_add  # if lsb is 0 , skip_add
+    add  s4, s4, s2    
+skip_add:    
+    slli s2, s2, 1     # Shift multiplicand left by 1 (multiply by 2 )
+    srli s3, s3, 1     # Shift multiplier right by 1 (divide by 2 )
+    bnez s3, mul_loop  # if s3 != 0 , mul_loop 
 
+
+#=========================================================================================
     # write matrix data to file
     mv a0, s0
     mv a1, s1        # matrix data pointer

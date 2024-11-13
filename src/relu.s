@@ -25,11 +25,22 @@
 relu:
     li t0, 1             
     blt a1, t0, error     
-    li t1, 0             
+    li t1, 0     # index            
 
 loop_start:
     # TODO: Add your own implementation
-
+    # Assume t2 = tmp
+    beqz a1, loop_end         # if a1 == 0 ,exit loop
+    lw   t2, 0(a0)
+    addi a0, a0,  4           # a[i+1] = a[i] + offset
+    addi a1, a1, -1           # n--
+    bge  t2, zero, loop_start # a[i] > 0,next element
+    sw   zero, -4(a0)         # store 0
+    j    loop_start
+    
+loop_end:
+    jr ra
+    
 error:
     li a0, 36          
     j exit          
