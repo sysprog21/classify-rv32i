@@ -167,6 +167,9 @@ classify:
     lw t0, 0(s3)
     lw t1, 0(s8)
     # mul a0, t0, t1 # FIXME: Replace 'mul' with your own implementation
+    mv a0, t0
+    mv a1, t1
+    call  mul
     slli a0, a0, 2
     jal malloc 
     beq a0, x0, error_malloc
@@ -205,7 +208,10 @@ classify:
     lw t1, 0(s8)
     # mul a1, t0, t1 # length of h array and set it as second argument
     # FIXME: Replace 'mul' with your own implementation
-    
+    mv a0, t0
+    mv a1, t1
+    call mul
+    mv a1, a0
     jal relu
     
     lw a0, 0(sp)
@@ -227,6 +233,9 @@ classify:
     lw t0, 0(s3)
     lw t1, 0(s6)
     # mul a0, t0, t1 # FIXME: Replace 'mul' with your own implementation
+    mv a0, t0
+    mv a1, t1
+    call mul
     slli a0, a0, 2
     jal malloc 
     beq a0, x0, error_malloc
@@ -286,7 +295,11 @@ classify:
     mv a0, s10 # load o array into first arg
     lw t0, 0(s3)
     lw t1, 0(s6)
-    mul a1, t0, t1 # load length of array into second arg
+    #mul a1, t0, t1 # load length of array into second arg
+    mv a0, t0
+    mv a1, t1
+    call mul
+    mv a1, a0
     # FIXME: Replace 'mul' with your own implementation
     
     jal argmax
@@ -384,3 +397,33 @@ error_args:
 error_malloc:
     li a0, 26
     j exit
+mul:
+    # prolouge
+    addi    sp, sp, -16
+    sw      s0, 12(sp)
+    sw      s1, 8(sp)
+    sw      s2, 4(sp)
+    sw      s3, 0(sp)
+
+    li      s0, 0 # store shifted a0
+    li      s1, 0 # ans
+    li      s2, 0 # counter
+mul_loop:
+    beq     a1, zero, epi
+    andi    s3, a1, 1
+    beq     s3, zero, next_iter_mul
+    sll     s0, a0, s2
+    add     s1, s1, s0
+next_iter_mul:
+    srli    a1, a1, 1
+    addi    s2, s2, 1
+    j       mul_loop
+epi:
+    # epilouge
+    mv      a0, s1
+    lw      s0, 12(sp)
+    lw      s1, 8(sp)
+    lw      s2, 4(sp)
+    lw      s3, 0(sp)
+    addi    sp, sp, 16
+    jr      ra

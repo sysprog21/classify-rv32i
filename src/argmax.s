@@ -27,11 +27,22 @@ argmax:
 
     lw t0, 0(a0)
 
-    li t1, 0
-    li t2, 1
+    li t1, 0 # index
+    li t2, 1 # counter
 loop_start:
     # TODO: Add your own implementation
-
+    bge     t2, a1, end_argmax
+    lw      t3, 0(a0)
+    ble     t0, t3, loop_handle
+    mv      t0, t3
+    mv      t1, t2
+loop_handle:
+    addi    a0, a0, 4
+    addi    t2, t2, 1
+    j       loop_start
+end_argmax: 
+    mv      a0, t1
+    jr      ra
 handle_error:
     li a0, 36
     j exit
