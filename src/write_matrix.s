@@ -63,6 +63,34 @@ write_matrix:
 
     # mul s4, s2, s3   # s4 = total elements
     # FIXME: Replace 'mul' with your own implementation
+    # see if  s2 negative
+    srai t4, s2, 31           # get the sign
+    xor s2, s2, t4            # get the absolute value
+    sub s2, s2, t4            
+
+    # see if  s3 negative
+    srai t5, s3, 31           # get the sign
+    xor s3, s3, t5            # get the absolute value
+    sub s3, s3, t5            
+    
+    xor t6, t4, t5            # see if multiplier and multiplicand have different sign
+    li t4, 0                  #initialize accumulator(t4) and counter(t5)
+    li t5, 0     
+mul:			    
+    bge t5, s2, mul_done       
+    add t4, t4, s3                 
+    addi t5, t5, 1                 
+    j mul
+mul_done:
+    bnez t6, negate_result    # jump if not different 
+    j end_multiply
+
+negate_result:
+    sub t4, x0, t4            # t4 = 0 - t4
+end_multiply:
+    addi s4, t4, 0
+
+    
 
     # write matrix data to file
     mv a0, s0

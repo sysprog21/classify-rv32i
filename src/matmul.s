@@ -56,15 +56,16 @@ matmul:
     li s0, 0 # outer loop counter
     li s1, 0 # inner loop counter
     mv s2, a6 # incrementing result matrix pointer
-    mv s3, a0 # incrementing matrix A pointer, increments durring outer loop
+    mv s3, a0 # incrementing matrix A pointer, increments during outer loop
     mv s4, a3 # incrementing matrix B pointer, increments during inner loop 
     
 outer_loop_start:
+
     #s0 is going to be the loop counter for the rows in A
     li s1, 0
     mv s4, a3
     blt s0, a1, inner_loop_start
-
+    
     j outer_loop_end
     
 inner_loop_start:
@@ -112,11 +113,39 @@ inner_loop_start:
     add s4, s4, t1 # incrememtning the column on Matrix B
     
     addi s1, s1, 1
+    
     j inner_loop_start
     
 inner_loop_end:
     # TODO: Add your own implementation
-
+    addi s0, s0, 1
+    slli t2, a2, 2
+    add s3, s3, t2                 # update matrix A pointer
+    
+    j outer_loop_start
+    
+outer_loop_end:
+    
+    # end the program
+    lw ra, 0(sp)
+    lw s0, 4(sp)
+    lw s1, 8(sp)
+    lw s2, 12(sp)
+    lw s3, 16(sp)
+    lw s4, 20(sp)
+    lw s5, 24(sp)
+    addi sp, sp, 28
+    jr ra
+    
 error:
     li a0, 38
     j exit
+    
+    
+    
+    mv t5, a0
+    mv a0, a1
+    jal print_int
+    mv a0, s0
+    jal print_int
+    mv a0, t5

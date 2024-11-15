@@ -76,6 +76,32 @@ read_matrix:
 
     # mul s1, t1, t2   # s1 is number of elements
     # FIXME: Replace 'mul' with your own implementation
+    # see if  t1 negative
+    srai t4, t1, 31           # get the sign
+    xor t1, t1, t4            # get the absolute value
+    sub t1, t1, t4            
+
+    # see if  t2 negative
+    srai t5, t2, 31           # get the sign
+    xor t2, t2, t5            # get the absolute value
+    sub t2, t2, t5            
+    
+    xor t6, t4, t5            # see if multiplier and multiplicand have different sign
+    li t4, 0                  #initialize accumulator(t4) and counter(t5)
+    li t5, 0     
+mul:			    
+    bge t5, t1, mul_done       
+    add t4, t4, t2                 
+    addi t5, t5, 1                 
+    j mul
+mul_done:
+    bnez t6, negate_result    # jump if not different 
+    j end_multiply
+
+negate_result:
+    sub t4, x0, t4            # t4 = 0 - t4
+end_multiply:
+    addi s1, t4, 0
 
     slli t3, s1, 2
     sw t3, 24(sp)    # size in bytes

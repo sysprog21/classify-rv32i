@@ -30,6 +30,9 @@
 classify:
     # Error handling
     li t0, 5
+    
+    #jal print_int	#test
+    
     blt a0, t0, error_args
     
     # Prolouge
@@ -167,6 +170,10 @@ classify:
     lw t0, 0(s3)
     lw t1, 0(s8)
     # mul a0, t0, t1 # FIXME: Replace 'mul' with your own implementation
+    mv a0, t0
+    mv a1, t1
+    jal mul
+    
     slli a0, a0, 2
     jal malloc 
     beq a0, x0, error_malloc
@@ -200,11 +207,16 @@ classify:
     sw a0, 0(sp)
     sw a1, 4(sp)
     
-    mv a0, s9 # move h to the first argument
+    
     lw t0, 0(s3)
     lw t1, 0(s8)
     # mul a1, t0, t1 # length of h array and set it as second argument
     # FIXME: Replace 'mul' with your own implementation
+    mv a0, t0	#call mul
+    mv a1, t1
+    jal mul
+    mv a1, a0
+    mv a0, s9 # move h to the first argument
     
     jal relu
     
@@ -227,6 +239,10 @@ classify:
     lw t0, 0(s3)
     lw t1, 0(s6)
     # mul a0, t0, t1 # FIXME: Replace 'mul' with your own implementation
+    mv a0, t0	#call mul
+    mv a1, t1
+    jal mul
+    
     slli a0, a0, 2
     jal malloc 
     beq a0, x0, error_malloc
@@ -283,11 +299,16 @@ classify:
     sw a1, 4(sp)
     sw a2, 8(sp)
     
-    mv a0, s10 # load o array into first arg
+
     lw t0, 0(s3)
     lw t1, 0(s6)
-    mul a1, t0, t1 # load length of array into second arg
+    #mul a1, t0, t1 # load length of array into second arg
     # FIXME: Replace 'mul' with your own implementation
+    mv a0, t0	#call mul
+    mv a1, t1
+    jal mul
+    mv a1, a0
+    mv a0, s10 # load o array into first arg
     
     jal argmax
     
@@ -375,6 +396,8 @@ epilouge:
     
     addi sp, sp, 48
     
+    #jal print_int	#test
+    
     jr ra
 
 error_args:
@@ -384,3 +407,37 @@ error_args:
 error_malloc:
     li a0, 26
     j exit
+    
+mul:
+    li t0, 0                   
+    li t1, 0                  
+
+    # see if  a1 negative
+    srai t2, a1, 31           # get the sign
+    xor a1, a1, t2            # get the absolute value
+    sub a1, a1, t2            
+
+    # see if  a0 negative
+    srai t3, a0, 31           # get the sign
+    xor a0, a0, t3            # get the absolute value
+    sub a0, a0, t3            
+
+multiply_loop:
+    bge t1, a1, multiply_done # 
+    add t0, t0, a0            # t0 += a0
+    addi t1, t1, 1            # t1++
+    j multiply_loop            
+
+multiply_done:
+    xor t4, t2, t3            # see if multiplier and multiplicand have different sign
+    bnez t4, negate_result    # jump if not different 
+    j end_multiply
+
+negate_result:
+    sub t0, x0, t0            # t0 = 0 - t0
+
+end_multiply:
+    mv a0, t0                  
+    jr ra                      
+
+    

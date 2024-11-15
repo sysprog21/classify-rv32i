@@ -306,6 +306,36 @@ class TestInitializeZero(unittest.TestCase):
         print_coverage("initialize_zero.s", verbose=False)
 
 
+
+
+# The following are some simple sanity checks:
+import subprocess, pathlib, os
+
+script_dir = pathlib.Path(os.path.dirname(__file__)).resolve()
+
+
+def compare_files(test, actual, expected):
+    full_actual = (test_asm_dir / actual).resolve()
+    full_expected = (test_asm_dir / expected).resolve()
+    assert (
+        full_expected.is_file()
+    ), f"Reference file {str(full_expected)} does not exist!"
+    test.assertTrue(
+        full_actual.is_file(),
+        f"It seems like the program never created the output file {str(full_actual)}",
+    )
+    # open and compare the files
+    with full_actual.open("rb") as a:
+        actual_bin = a.read()
+    with full_expected.open("rb") as e:
+        expected_bin = e.read()
+    test.assertEqual(
+        actual_bin,
+        expected_bin,
+        f"Bytes of {str(full_actual)} and {str(full_expected)} did not match!",
+    )
+
+
 if __name__ == "__main__":
     split_idx = sys.argv.index("--")
     for arg in sys.argv[split_idx + 1 :]:
