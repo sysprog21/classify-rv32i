@@ -22,6 +22,11 @@ abs:
     bge t0, zero, done
 
     # TODO: Add your own implementation
+    # Negate the number to make it positive
+    neg t0, t0
+    
+    # Store the modified value back to memory
+    sw t0, 0(a0)
 
 done:
     # Epilogue

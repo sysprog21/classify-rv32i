@@ -35,8 +35,23 @@ dot:
     li t1, 0         
 
 loop_start:
-    bge t1, a2, loop_end
-    # TODO: Add your own implementation
+    bge t1, a2, loop_end     # Exit loop if t1 >= element_count
+
+    # Calculate addresses for current elements in arr0 and arr1
+    mul t2, t1, a3           # t2 = t1 * stride0
+    mul t3, t1, a4           # t3 = t1 * stride1
+
+    add t4, a0, t2           # t4 = address of arr0[t1 * stride0]
+    add t5, a1, t3           # t5 = address of arr1[t1 * stride1]
+
+    lw t6, 0(t4)             # Load arr0[t1 * stride0] into t6
+    lw t2, 0(t5)             # Load arr1[t1 * stride1] into t2
+
+    mul t3, t6, t2           # t3 = arr0[t1 * stride0] * arr1[t1 * stride1]
+    add t0, t0, t3           # Accumulate into result
+
+    addi t1, t1, 1           # Increment loop index
+    j loop_start             # Repeat loop
 
 loop_end:
     mv a0, t0
