@@ -1,3 +1,5 @@
+.import ./multiply.s
+
 .globl read_matrix
 
 .text
@@ -7,116 +9,98 @@
 # Loads matrix data from a binary file into dynamically allocated memory.
 # Matrix dimensions are read from file header and stored at provided addresses.
 #
-# Binary File Format:
-#   Header (8 bytes):
-#     - Bytes 0-3: Number of rows (int32)
-#     - Bytes 4-7: Number of columns (int32)
-#   Data:
-#     - Subsequent 4-byte blocks: Matrix elements
-#     - Stored in row-major order: [row0|row1|row2|...]
-#
-# Arguments:
-#   Input:
-#     a0: Pointer to filename string
-#     a1: Address to write row count
-#     a2: Address to write column count
-#
-#   Output:
-#     a0: Base address of loaded matrix
-#
 # Error Handling:
 #   Program terminates with:
 #   - Code 26: Dynamic memory allocation failed
 #   - Code 27: File access error (open/EOF)
 #   - Code 28: File closure error
 #   - Code 29: Data read error
-#
-# Memory Note:
-#   Caller is responsible for freeing returned matrix pointer
 # ==============================================================================
+
 read_matrix:
-    
     # Prologue
-    addi sp, sp, -40
-    sw ra, 0(sp)
-    sw s0, 4(sp)
-    sw s1, 8(sp)
-    sw s2, 12(sp)
-    sw s3, 16(sp)
-    sw s4, 20(sp)
+    addi sp, sp, -56              # Allocate stack space (24 bytes for saved registers + 32 bytes for variables)
+    sw ra, 0(sp)                  # Store ra at sp+0
+    sw s0, 4(sp)                  # Store s0 at sp+4
+    sw s1, 8(sp)                  # Store s1 at sp+8
+    sw s2, 12(sp)                 # Store s2 at sp+12
+    sw s3, 16(sp)                 # Store s3 at sp+16
+    sw s4, 20(sp)                 # Store s4 at sp+20
 
-    mv s3, a1         # save and copy rows
-    mv s4, a2         # save and copy cols
+    # Store the addresses for row and column counts on the stack
+    sw a1, 24(sp)                 # Save address to write row count at sp+24
+    sw a2, 28(sp)                 # Save address to write column count at sp+28
 
-    li a1, 0
-
-    jal fopen
+    li a1, 0                      # Mode 0 for reading
+    jal fopen                     # Open the file
 
     li t0, -1
-    beq a0, t0, fopen_error   # fopen didn't work
+    beq a0, t0, fopen_error       # Check for fopen error
 
-    mv s0, a0        # file
+    sw a0, 32(sp)                 # Save file descriptor at sp+32
 
-    # read rows n columns
-    mv a0, s0
-    addi a1, sp, 28  # a1 is a buffer
-
-    li a2, 8         # look at 2 numbers
-
-    jal fread
+    # Read rows and columns
+    lw a0, 32(sp)                 # Load file descriptor
+    addi a1, sp, 44               # Buffer at sp+44 (Avoiding overlap with saved registers)
+    li a2, 8                      # Read 8 bytes (2 integers)
+    jal fread                     # Read the header
 
     li t0, 8
-    bne a0, t0, fread_error
+    bne a0, t0, fread_error       # Check if 8 bytes were read
 
-    lw t1, 28(sp)    # opening to save num rows
-    lw t2, 32(sp)    # opening to save num cols
+    lw t1, 44(sp)                 # Load number of rows from buffer
+    lw t2, 48(sp)                 # Load number of columns from buffer
 
-    sw t1, 0(s3)     # saves num rows
-    sw t2, 0(s4)     # saves num cols
+    lw t3, 24(sp)                 # Load address to write row count
+    lw t4, 28(sp)                 # Load address to write column count
 
-    # mul s1, t1, t2   # s1 is number of elements
-    # FIXME: Replace 'mul' with your own implementation
+    sw t1, 0(t3)                  # Store number of rows
+    sw t2, 0(t4)                  # Store number of columns
 
-    slli t3, s1, 2
-    sw t3, 24(sp)    # size in bytes
+    # Multiply t1 and t2 to get total elements
+    mv a0, t1                     # Set multiplicand (rows)
+    mv a1, t2                     # Set multiplier (columns)
+    jal multiply                  # Call external multiply function
+    mv t5, a0                     # Store result (number of elements) in t5
 
-    lw a0, 24(sp)    # a0 = size in bytes
+    slli t6, t5, 2                # Multiply by 4 to get size in bytes
+    sw t6, 40(sp)                 # Store size in bytes at sp+40
 
-    jal malloc
+    lw a0, 40(sp)                 # Load size in bytes into a0
+    jal malloc                    # Allocate memory for the matrix
 
-    beq a0, x0, malloc_error
+    beq a0, x0, malloc_error      # Check for malloc error
 
-    # set up file, buffer and bytes to read
-    mv s2, a0        # matrix
-    mv a0, s0
-    mv a1, s2
-    lw a2, 24(sp)
+    sw a0, 36(sp)                 # Save matrix base address at sp+36
 
-    jal fread
+    # Read matrix data
+    lw a0, 32(sp)                 # Load file descriptor
+    lw a1, 36(sp)                 # Load buffer address (matrix base address)
+    lw a2, 40(sp)                 # Load number of bytes to read
+    jal fread                     # Read the matrix data
 
-    lw t3, 24(sp)
-    bne a0, t3, fread_error
+    lw t6, 40(sp)                 # Load expected number of bytes
+    bne a0, t6, fread_error       # Check if all data was read
 
-    mv a0, s0
-
-    jal fclose
+    # Close the file
+    lw a0, 32(sp)                 # Load file descriptor
+    jal fclose                    # Close the file
 
     li t0, -1
+    beq a0, t0, fclose_error      # Check for fclose error
 
-    beq a0, t0, fclose_error
-
-    mv a0, s2
+    lw a0, 36(sp)                 # Load matrix base address to return
 
     # Epilogue
-    lw ra, 0(sp)
-    lw s0, 4(sp)
-    lw s1, 8(sp)
-    lw s2, 12(sp)
-    lw s3, 16(sp)
-    lw s4, 20(sp)
-    addi sp, sp, 40
+    lw ra, 0(sp)                  # Restore ra
+    lw s0, 4(sp)                  # Restore s0
+    lw s1, 8(sp)                  # Restore s1
+    lw s2, 12(sp)                 # Restore s2
+    lw s3, 16(sp)                 # Restore s3
+    lw s4, 20(sp)                 # Restore s4
+    addi sp, sp, 56               # Deallocate stack space
 
-    jr ra
+    jr ra                         # Return
 
 malloc_error:
     li a0, 26
@@ -135,11 +119,12 @@ fclose_error:
     j error_exit
 
 error_exit:
+    # Restore registers and stack pointer
     lw ra, 0(sp)
     lw s0, 4(sp)
     lw s1, 8(sp)
     lw s2, 12(sp)
     lw s3, 16(sp)
     lw s4, 20(sp)
-    addi sp, sp, 40
-    j exit
+    addi sp, sp, 56
+    jal exit                      # Properly call exit
