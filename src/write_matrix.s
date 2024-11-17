@@ -1,3 +1,5 @@
+.import ./multiply.s
+
 .globl write_matrix
 
 .text
@@ -25,72 +27,71 @@
 # ==============================================================================
 write_matrix:
     # Prologue
-    addi sp, sp, -44
-    sw ra, 0(sp)
-    sw s0, 4(sp)
-    sw s1, 8(sp)
-    sw s2, 12(sp)
-    sw s3, 16(sp)
-    sw s4, 20(sp)
+    addi sp, sp, -48               # Adjust stack pointer, allocate 48 bytes
+    sw ra, 0(sp)                   # Store ra at sp+0
+    sw s0, 4(sp)                   # Store s0 at sp+4
+    sw s1, 8(sp)                   # Store s1 at sp+8
+    sw s2, 12(sp)                  # Store s2 at sp+12
+    sw s3, 16(sp)                  # Store s3 at sp+16
+    sw s4, 20(sp)                  # Store s4 at sp+20
 
-    # save arguments
-    mv s1, a1        # s1 = matrix pointer
-    mv s2, a2        # s2 = number of rows
-    mv s3, a3        # s3 = number of columns
+    # Save arguments
+    mv s1, a1                      # s1 = matrix pointer
+    mv s2, a2                      # s2 = number of rows
+    mv s3, a3                      # s3 = number of columns
 
-    li a1, 1
-
-    jal fopen
+    li a1, 1                       # Mode 1 for writing
+    jal fopen                      # Open the file
 
     li t0, -1
-    beq a0, t0, fopen_error   # fopen didn't work
+    beq a0, t0, fopen_error        # Check for fopen error
 
-    mv s0, a0        # file descriptor
+    mv s0, a0                      # s0 = file descriptor
 
     # Write number of rows and columns to file
-    sw s2, 24(sp)    # number of rows
-    sw s3, 28(sp)    # number of columns
+    sw s2, 24(sp)                  # Store number of rows at sp+24
+    sw s3, 28(sp)                  # Store number of columns at sp+28
 
-    mv a0, s0
-    addi a1, sp, 24  # buffer with rows and columns
-    li a2, 2         # number of elements to write
-    li a3, 4         # size of each element
-
-    jal fwrite
+    mv a0, s0                      # File descriptor
+    addi a1, sp, 24                # Buffer with rows and columns at sp+24
+    li a2, 2                       # Number of elements to write
+    li a3, 4                       # Size of each element (4 bytes)
+    jal fwrite                     # Write header to file
 
     li t0, 2
-    bne a0, t0, fwrite_error
+    bne a0, t0, fwrite_error       # Check if 2 elements were written
 
-    # mul s4, s2, s3   # s4 = total elements
-    # FIXME: Replace 'mul' with your own implementation
+    # Multiply s2 and s3 to get total elements in s4
+    mv a0, s2                      # Set multiplicand (number of rows)
+    mv a1, s3                      # Set multiplier (number of columns)
+    jal multiply                   # Call external multiply function
+    mv s4, a0                      # s4 = total number of elements
 
-    # write matrix data to file
-    mv a0, s0
-    mv a1, s1        # matrix data pointer
-    mv a2, s4        # number of elements to write
-    li a3, 4         # size of each element
+    # Write matrix data to file
+    mv a0, s0                      # File descriptor
+    mv a1, s1                      # Matrix data pointer
+    mv a2, s4                      # Number of elements to write
+    li a3, 4                       # Size of each element (4 bytes)
+    jal fwrite                     # Write matrix data to file
 
-    jal fwrite
+    bne a0, s4, fwrite_error       # Check if all elements were written
 
-    bne a0, s4, fwrite_error
-
-    mv a0, s0
-
-    jal fclose
+    mv a0, s0                      # File descriptor
+    jal fclose                     # Close the file
 
     li t0, -1
-    beq a0, t0, fclose_error
+    beq a0, t0, fclose_error       # Check for fclose error
 
     # Epilogue
-    lw ra, 0(sp)
-    lw s0, 4(sp)
-    lw s1, 8(sp)
-    lw s2, 12(sp)
-    lw s3, 16(sp)
-    lw s4, 20(sp)
-    addi sp, sp, 44
+    lw ra, 0(sp)                   # Restore ra
+    lw s0, 4(sp)                   # Restore s0
+    lw s1, 8(sp)                   # Restore s1
+    lw s2, 12(sp)                  # Restore s2
+    lw s3, 16(sp)                  # Restore s3
+    lw s4, 20(sp)                  # Restore s4
+    addi sp, sp, 48                # Deallocate stack space
 
-    jr ra
+    jr ra                          # Return
 
 fopen_error:
     li a0, 27
@@ -111,5 +112,5 @@ error_exit:
     lw s2, 12(sp)
     lw s3, 16(sp)
     lw s4, 20(sp)
-    addi sp, sp, 44
-    j exit
+    addi sp, sp, 48
+    jal exit                       # Properly call exit
