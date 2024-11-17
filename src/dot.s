@@ -27,83 +27,83 @@
 # =======================================================
 dot:
     li t0, 1
-    blt a2, t0, error_terminate    # 检查 element_count >= 1
-    blt a3, t0, error_terminate    # 检查 stride0 >= 1
-    blt a4, t0, error_terminate    # 检查 stride1 >= 1
+    blt a2, t0, error_terminate    # Check if element_count >= 1
+    blt a3, t0, error_terminate    # Check if stride0 >= 1
+    blt a4, t0, error_terminate    # Check if stride1 >= 1
 
-    addi sp, sp, -40
-    sw ra, 36(sp)
-    sw s0, 0(sp)
-    sw s1, 4(sp)
-    sw s2, 8(sp)
-    sw s3, 12(sp)
-    sw s4, 16(sp)
-    sw s5, 20(sp)
-    sw s6, 24(sp)
-    sw s7, 28(sp)
-    sw a2, 32(sp)                # 保存 a2
+    addi sp, sp, -40               # Allocate space on the stack
+    sw ra, 36(sp)                  # Save return address
+    sw s0, 0(sp)                   # Save s0
+    sw s1, 4(sp)                   # Save s1
+    sw s2, 8(sp)                   # Save s2
+    sw s3, 12(sp)                  # Save s3
+    sw s4, 16(sp)                  # Save s4
+    sw s5, 20(sp)                  # Save s5
+    sw s6, 24(sp)                  # Save s6
+    sw s7, 28(sp)                  # Save s7
+    sw a2, 32(sp)                  # Save a2
 
-    li s0, 0          # s0: 结果累加器
-    li s1, 0          # s1: 循环索引
+    li s0, 0                       # s0: Result accumulator
+    li s1, 0                       # s1: Loop index
 
-    slli s2, a3, 2    # s2 = stride0 * 4（字节偏移）
-    slli s3, a4, 2    # s3 = stride1 * 4
+    slli s2, a3, 2                 # s2 = stride0 * 4 (byte offset)
+    slli s3, a4, 2                 # s3 = stride1 * 4 (byte offset)
 
-    mv s4, zero       # s4: arr0 的偏移量
-    mv s5, zero       # s5: arr1 的偏移量
+    mv s4, zero                    # s4: Offset for arr0
+    mv s5, zero                    # s5: Offset for arr1
 
-    mv s6, a0         # s6: 保存数组指针 a0
-    mv s7, a1         # s7: 保存数组指针 a1
+    mv s6, a0                      # s6: Base pointer for arr0
+    mv s7, a1                      # s7: Base pointer for arr1
 
 loop_start:
-    blt s1, a2, loop_body
+    blt s1, a2, loop_body          # If s1 < element_count, continue
     j loop_end
 
 loop_body:
-    add t0, s6, s4       # t0 = arr0 的当前地址
-    add t1, s7, s5       # t1 = arr1 的当前地址
+    add t0, s6, s4                 # t0 = Current address for arr0[i * stride0]
+    add t1, s7, s5                 # t1 = Current address for arr1[i * stride1]
 
-    lw t2, 0(t0)         # t2 = arr0[i * stride0]
-    lw t3, 0(t1)         # t3 = arr1[i * stride1]
+    lw t2, 0(t0)                   # Load arr0[i * stride0]
+    lw t3, 0(t1)                   # Load arr1[i * stride1]
 
-    # 乘法（使用自定义的 multiply 函数）
+    # Perform multiplication (using the custom 'multiply' function)
     mv a0, t2
     mv a1, t3
-    jal multiply         # 结果在 a0 中
+    jal multiply                   # Result in a0
 
-    # 累加结果
-    add s0, s0, a0       # s0 += 乘积
+    # Accumulate result
+    add s0, s0, a0                 # s0 += product
 
-    # 更新偏移量
-    add s4, s4, s2       # s4 += stride0 * 4
-    add s5, s5, s3       # s5 += stride1 * 4
+    # Update offsets
+    add s4, s4, s2                 # s4 += stride0 * 4
+    add s5, s5, s3                 # s5 += stride1 * 4
 
-    addi s1, s1, 1       # s1 += 1
+    addi s1, s1, 1                 # s1 += 1 (increment loop index)
     j loop_start
 
 loop_end:
-    mv a0, s0            # 返回结果到 a0
+    mv a0, s0                      # Return the result in a0
 
-    lw a2, 32(sp)        # 恢复 a2
-    lw s0, 0(sp)
-    lw s1, 4(sp)
-    lw s2, 8(sp)
-    lw s3, 12(sp)
-    lw s4, 16(sp)
-    lw s5, 20(sp)
-    lw s6, 24(sp)
-    lw s7, 28(sp)
-    lw ra, 36(sp)
-    addi sp, sp, 40
-    jr ra
+    lw a2, 32(sp)                  # Restore a2
+    lw s0, 0(sp)                   # Restore s0
+    lw s1, 4(sp)                   # Restore s1
+    lw s2, 8(sp)                   # Restore s2
+    lw s3, 12(sp)                  # Restore s3
+    lw s4, 16(sp)                  # Restore s4
+    lw s5, 20(sp)                  # Restore s5
+    lw s6, 24(sp)                  # Restore s6
+    lw s7, 28(sp)                  # Restore s7
+    lw ra, 36(sp)                  # Restore ra
+    addi sp, sp, 40                # Deallocate stack space
+    jr ra                          # Return
 
 error_terminate:
-    blt a2, t0, set_error_36
-    li a0, 37            # 错误代码 37
+    blt a2, t0, set_error_36       # If a2 < 1, set error 36
+    li a0, 37                      # Error code 37 for stride issue
     j exit
 
 set_error_36:
-    li a0, 36            # 错误代码 36
+    li a0, 36                      # Error code 36 for element count issue
     j exit
 
 # =======================================================
@@ -115,54 +115,54 @@ set_error_36:
 #   a0: Product
 # =======================================================
 multiply:
-    addi sp, sp, -16
-    sw ra, 12(sp)
-    sw s0, 0(sp)
-    sw s1, 4(sp)
-    sw s2, 8(sp)
+    addi sp, sp, -16               # Allocate stack space
+    sw ra, 12(sp)                  # Save return address
+    sw s0, 0(sp)                   # Save s0
+    sw s1, 4(sp)                   # Save s1
+    sw s2, 8(sp)                   # Save s2
 
-    mv s0, zero          # s0: 乘积累加器
-    mv s1, a1            # s1: 乘数的副本
+    mv s0, zero                    # s0: Product accumulator
+    mv s1, a1                      # Copy multiplier to s1
 
-    slt t0, a0, zero     # t0 = (a0 < 0)
-    slt t1, a1, zero     # t1 = (a1 < 0)
-    xor t2, t0, t1       # t2 = 结果符号（0: 正，1: 负）
+    slt t0, a0, zero               # Check if a0 < 0
+    slt t1, a1, zero               # Check if a1 < 0
+    xor t2, t0, t1                 # Determine the result sign (0: positive, 1: negative)
 
-    blt a0, zero, neg_a0
+    blt a0, zero, neg_a0           # If a0 < 0, make it positive
     j abs_a0_done
 neg_a0:
     sub a0, zero, a0
 abs_a0_done:
-    blt a1, zero, neg_a1
+    blt a1, zero, neg_a1           # If a1 < 0, make it positive
     j abs_a1_done
 neg_a1:
     sub a1, zero, a1
 abs_a1_done:
 
 multiply_loop:
-    beq a1, zero, multiply_end
+    beq a1, zero, multiply_end     # Exit loop when a1 == 0
 
-    andi t3, a1, 1
-    beq t3, zero, skip_add
-    add s0, s0, a0
+    andi t3, a1, 1                 # Check if the least significant bit of a1 is set
+    beq t3, zero, skip_add         # If not, skip addition
+    add s0, s0, a0                 # Add a0 to product accumulator
 skip_add:
-    slli a0, a0, 1
-    srli a1, a1, 1
+    slli a0, a0, 1                 # Shift a0 left by 1 (a0 *= 2)
+    srli a1, a1, 1                 # Shift a1 right by 1 (a1 /= 2)
     j multiply_loop
 
 multiply_end:
-    # 应用符号
-    bne t2, zero, neg_result
+    # Apply the sign
+    bne t2, zero, neg_result       # If t2 != 0, negate the result
     j result_ready
 neg_result:
-    sub s0, zero, s0
+    sub s0, zero, s0               # Negate the product
 result_ready:
-    mv a0, s0           # 将乘积返回到 a0
+    mv a0, s0                      # Move product to a0
 
-    # 恢复寄存器
-    lw s0, 0(sp)
-    lw s1, 4(sp)
-    lw s2, 8(sp)
-    lw ra, 12(sp)
-    addi sp, sp, 16
-    jr ra
+    # Restore registers
+    lw s0, 0(sp)                   # Restore s0
+    lw s1, 4(sp)                   # Restore s1
+    lw s2, 8(sp)                   # Restore s2
+    lw ra, 12(sp)                  # Restore return address
+    addi sp, sp, 16                # Deallocate stack space
+    jr ra                          # Return
