@@ -1,5 +1,4 @@
 .globl write_matrix
-
 .text
 # ==============================================================================
 # FUNCTION: Write a matrix of integers to a binary file
@@ -27,60 +26,65 @@ write_matrix:
     # Prologue
     addi sp, sp, -44
     sw ra, 0(sp)
-    sw s0, 4(sp)
-    sw s1, 8(sp)
-    sw s2, 12(sp)
-    sw s3, 16(sp)
-    sw s4, 20(sp)
-
-    # save arguments
-    mv s1, a1        # s1 = matrix pointer
-    mv s2, a2        # s2 = number of rows
-    mv s3, a3        # s3 = number of columns
-
-    li a1, 1
-
+    sw s0, 4(sp)     # File descriptor
+    sw s1, 8(sp)     # Matrix pointer
+    sw s2, 12(sp)    # Number of rows
+    sw s3, 16(sp)    # Number of columns
+    sw s4, 20(sp)    # Total elements
+    
+    # Save arguments
+    mv s1, a1        # Save matrix pointer
+    mv s2, a2        # Save number of rows
+    mv s3, a3        # Save number of columns
+    
+    # Open file for writing
+    li a1, 1         # Write mode
     jal fopen
-
     li t0, -1
-    beq a0, t0, fopen_error   # fopen didn't work
-
-    mv s0, a0        # file descriptor
-
-    # Write number of rows and columns to file
-    sw s2, 24(sp)    # number of rows
-    sw s3, 28(sp)    # number of columns
-
-    mv a0, s0
-    addi a1, sp, 24  # buffer with rows and columns
-    li a2, 2         # number of elements to write
-    li a3, 4         # size of each element
-
+    beq a0, t0, fopen_error
+    mv s0, a0        # Save file descriptor
+    
+    # Write dimensions to file
+    sw s2, 24(sp)    # Store rows
+    sw s3, 28(sp)    # Store columns
+    mv a0, s0        # File descriptor
+    addi a1, sp, 24  # Buffer with dimensions
+    li a2, 2         # Two integers
+    li a3, 4         # Size of int
     jal fwrite
-
     li t0, 2
     bne a0, t0, fwrite_error
-
-    # mul s4, s2, s3   # s4 = total elements
-    # FIXME: Replace 'mul' with your own implementation
-
-    # write matrix data to file
-    mv a0, s0
-    mv a1, s1        # matrix data pointer
-    mv a2, s4        # number of elements to write
-    li a3, 4         # size of each element
-
+    
+    # Calculate total elements (rows * cols) using bit operations
+    mv t0, s2        # Copy rows
+    mv t1, s3        # Copy cols
+    li s4, 0         # Initialize result
+    
+multiply:
+    beq t1, x0, multiply_done  # If multiplier is zero, done
+    andi t2, t1, 1            # Get LSB of multiplier
+    beqz t2, multiply_skip    # If LSB is 0, skip addition
+    add s4, s4, t0           # Add multiplicand to result
+multiply_skip:
+    slli t0, t0, 1          # Left shift multiplicand
+    srli t1, t1, 1          # Right shift multiplier
+    j multiply
+multiply_done:    
+    
+    # Write matrix data
+    mv a0, s0        # File descriptor
+    mv a1, s1        # Matrix data pointer
+    mv a2, s4        # Number of elements
+    li a3, 4         # Size of int
     jal fwrite
-
     bne a0, s4, fwrite_error
-
+    
+    # Close file
     mv a0, s0
-
     jal fclose
-
     li t0, -1
     beq a0, t0, fclose_error
-
+    
     # Epilogue
     lw ra, 0(sp)
     lw s0, 4(sp)
@@ -89,7 +93,6 @@ write_matrix:
     lw s3, 16(sp)
     lw s4, 20(sp)
     addi sp, sp, 44
-
     jr ra
 
 fopen_error:

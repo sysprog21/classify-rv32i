@@ -115,7 +115,22 @@ inner_loop_start:
     j inner_loop_start
     
 inner_loop_end:
-    # TODO: Add your own implementation
+    slli t0, a2, 2  # total length of m0 row
+    add  s3, s3, t0 # incrementing m0 pointer
+    addi s0, s0, 1 
+    j outer_loop_start
+
+outer_loop_end:
+    # Epilogue
+    lw ra, 0(sp)
+    lw s0, 4(sp)
+    lw s1, 8(sp)
+    lw s2, 12(sp)
+    lw s3, 16(sp)
+    lw s4, 20(sp)
+    lw s5, 24(sp)
+    addi sp, sp, 28
+    ret
 
 error:
     li a0, 38

@@ -23,139 +23,116 @@
 # Error Codes:
 #   31 - Invalid argument count
 #   26 - Memory allocation failure
-#
-# Usage Example:
-#   main.s <M0_PATH> <M1_PATH> <INPUT_PATH> <OUTPUT_PATH>
 # =====================================
 classify:
     # Error handling
     li t0, 5
     blt a0, t0, error_args
     
-    # Prolouge
+    # Prologue
     addi sp, sp, -48
-    
     sw ra, 0(sp)
-    
-    sw s0, 4(sp) # m0 matrix
-    sw s1, 8(sp) # m1 matrix
+    sw s0, 4(sp)  # m0 matrix
+    sw s1, 8(sp)  # m1 matrix
     sw s2, 12(sp) # input matrix
-    
     sw s3, 16(sp) # m0 matrix rows
     sw s4, 20(sp) # m0 matrix cols
-    
     sw s5, 24(sp) # m1 matrix rows
     sw s6, 28(sp) # m1 matrix cols
-     
     sw s7, 32(sp) # input matrix rows
     sw s8, 36(sp) # input matrix cols
     sw s9, 40(sp) # h
     sw s10, 44(sp) # o
-    
-    # Read pretrained m0
-    
+
+    # ==== Read m0 matrix ====
     addi sp, sp, -12
-    
     sw a0, 0(sp)
     sw a1, 4(sp)
     sw a2, 8(sp)
     
+    # Allocate memory for dimensions
     li a0, 4
-    jal malloc # malloc 4 bytes for an integer, rows
+    jal malloc
     beq a0, x0, error_malloc
-    mv s3, a0 # save m0 rows pointer for later
+    mv s3, a0
     
     li a0, 4
-    jal malloc # malloc 4 bytes for an integer, cols
+    jal malloc
     beq a0, x0, error_malloc
-    mv s4, a0 # save m0 cols pointer for later
+    mv s4, a0
     
-    lw a1, 4(sp) # restores the argument pointer
-    
-    lw a0, 4(a1) # set argument 1 for the read_matrix function  
-    mv a1, s3 # set argument 2 for the read_matrix function
-    mv a2, s4 # set argument 3 for the read_matrix function
-    
+    # Read matrix
+    lw a1, 4(sp)
+    lw a0, 4(a1)
+    mv a1, s3
+    mv a2, s4
     jal read_matrix
+    mv s0, a0
     
-    mv s0, a0 # setting s0 to the m0, aka the return value of read_matrix
-    
+    # Restore registers
     lw a0, 0(sp)
     lw a1, 4(sp)
     lw a2, 8(sp)
-    
-    addi sp, sp, 12
-    # Read pretrained m1
-    
-    addi sp, sp, -12
-    
-    sw a0, 0(sp)
-    sw a1, 4(sp)
-    sw a2, 8(sp)
-    
-    li a0, 4
-    jal malloc # malloc 4 bytes for an integer, rows
-    beq a0, x0, error_malloc
-    mv s5, a0 # save m1 rows pointer for later
-    
-    li a0, 4
-    jal malloc # malloc 4 bytes for an integer, cols
-    beq a0, x0, error_malloc
-    mv s6, a0 # save m1 cols pointer for later
-    
-    lw a1, 4(sp) # restores the argument pointer
-    
-    lw a0, 8(a1) # set argument 1 for the read_matrix function  
-    mv a1, s5 # set argument 2 for the read_matrix function
-    mv a2, s6 # set argument 3 for the read_matrix function
-    
-    jal read_matrix
-    
-    mv s1, a0 # setting s1 to the m1, aka the return value of read_matrix
-    
-    lw a0, 0(sp)
-    lw a1, 4(sp)
-    lw a2, 8(sp)
-    
     addi sp, sp, 12
 
-    # Read input matrix
-    
+    # ==== Read m1 matrix ====
     addi sp, sp, -12
-    
     sw a0, 0(sp)
     sw a1, 4(sp)
     sw a2, 8(sp)
     
     li a0, 4
-    jal malloc # malloc 4 bytes for an integer, rows
+    jal malloc
     beq a0, x0, error_malloc
-    mv s7, a0 # save input rows pointer for later
+    mv s5, a0
     
     li a0, 4
-    jal malloc # malloc 4 bytes for an integer, cols
+    jal malloc
     beq a0, x0, error_malloc
-    mv s8, a0 # save input cols pointer for later
+    mv s6, a0
     
-    lw a1, 4(sp) # restores the argument pointer
-    
-    lw a0, 12(a1) # set argument 1 for the read_matrix function  
-    mv a1, s7 # set argument 2 for the read_matrix function
-    mv a2, s8 # set argument 3 for the read_matrix function
-    
+    lw a1, 4(sp)
+    lw a0, 8(a1)
+    mv a1, s5
+    mv a2, s6
     jal read_matrix
-    
-    mv s2, a0 # setting s2 to the input matrix, aka the return value of read_matrix
+    mv s1, a0
     
     lw a0, 0(sp)
     lw a1, 4(sp)
     lw a2, 8(sp)
-    
     addi sp, sp, 12
 
-    # Compute h = matmul(m0, input)
+    # ==== Read input matrix ====
+    addi sp, sp, -12
+    sw a0, 0(sp)
+    sw a1, 4(sp)
+    sw a2, 8(sp)
+    
+    li a0, 4
+    jal malloc
+    beq a0, x0, error_malloc
+    mv s7, a0
+    
+    li a0, 4
+    jal malloc
+    beq a0, x0, error_malloc
+    mv s8, a0
+    
+    lw a1, 4(sp)
+    lw a0, 12(a1)
+    mv a1, s7
+    mv a2, s8
+    jal read_matrix
+    mv s2, a0
+    
+    lw a0, 0(sp)
+    lw a1, 4(sp)
+    lw a2, 8(sp)
+    addi sp, sp, 12
+
+    # ==== Compute h = matmul(m0, input) ====
     addi sp, sp, -28
-    
     sw a0, 0(sp)
     sw a1, 4(sp)
     sw a2, 8(sp)
@@ -164,26 +141,39 @@ classify:
     sw a5, 20(sp)
     sw a6, 24(sp)
     
+    # Allocate memory for h
     lw t0, 0(s3)
     lw t1, 0(s8)
-    # mul a0, t0, t1 # FIXME: Replace 'mul' with your own implementation
+    
+    # Multiply dimensions
+    li a0, 0
+multiply_h:
+    beq t1, x0, multiply_h_done
+    andi t2, t1, 1
+    beq t2, x0, skip_add_h
+    add a0, a0, t0
+skip_add_h:
+    slli t0, t0, 1
+    srli t1, t1, 1
+    j multiply_h
+multiply_h_done:
+    
     slli a0, a0, 2
-    jal malloc 
+    jal malloc
     beq a0, x0, error_malloc
-    mv s9, a0 # move h to s9
+    mv s9, a0
+    mv a6, a0
     
-    mv a6, a0 # h 
-    
-    mv a0, s0 # move m0 array to first arg
-    lw a1, 0(s3) # move m0 rows to second arg
-    lw a2, 0(s4) # move m0 cols to third arg
-    
-    mv a3, s2 # move input array to fourth arg
-    lw a4, 0(s7) # move input rows to fifth arg
-    lw a5, 0(s8) # move input cols to sixth arg
-    
+    # Perform matrix multiplication
+    mv a0, s0
+    lw a1, 0(s3)
+    lw a2, 0(s4)
+    mv a3, s2
+    lw a4, 0(s7)
+    lw a5, 0(s8)
     jal matmul
     
+    # Restore registers
     lw a0, 0(sp)
     lw a1, 4(sp)
     lw a2, 8(sp)
@@ -191,31 +181,38 @@ classify:
     lw a4, 16(sp)
     lw a5, 20(sp)
     lw a6, 24(sp)
-    
     addi sp, sp, 28
-    
-    # Compute h = relu(h)
+
+    # ==== Apply ReLU to h ====
     addi sp, sp, -8
-    
     sw a0, 0(sp)
     sw a1, 4(sp)
     
-    mv a0, s9 # move h to the first argument
+    mv a0, s9
     lw t0, 0(s3)
     lw t1, 0(s8)
-    # mul a1, t0, t1 # length of h array and set it as second argument
-    # FIXME: Replace 'mul' with your own implementation
+    
+    # Multiply for length
+    li a1, 0
+multiply_relu:
+    beq t1, x0, multiply_relu_done
+    andi t2, t1, 1
+    beq t2, x0, skip_add_relu
+    add a1, a1, t0
+skip_add_relu:
+    slli t0, t0, 1
+    srli t1, t1, 1
+    j multiply_relu
+multiply_relu_done:
     
     jal relu
     
     lw a0, 0(sp)
     lw a1, 4(sp)
-    
     addi sp, sp, 8
-    
-    # Compute o = matmul(m1, h)
+
+    # ==== Compute o = matmul(m1, h) ====
     addi sp, sp, -28
-    
     sw a0, 0(sp)
     sw a1, 4(sp)
     sw a2, 8(sp)
@@ -224,26 +221,39 @@ classify:
     sw a5, 20(sp)
     sw a6, 24(sp)
     
-    lw t0, 0(s3)
-    lw t1, 0(s6)
-    # mul a0, t0, t1 # FIXME: Replace 'mul' with your own implementation
+    # Allocate memory for o
+    lw t0, 0(s5)
+    lw t1, 0(s8)
+    
+    # Multiply dimensions
+    li a0, 0
+multiply_o:
+    beq t1, x0, multiply_o_done
+    andi t2, t1, 1
+    beq t2, x0, skip_add_o
+    add a0, a0, t0
+skip_add_o:
+    slli t0, t0, 1
+    srli t1, t1, 1
+    j multiply_o
+multiply_o_done:
+    
     slli a0, a0, 2
-    jal malloc 
+    jal malloc
     beq a0, x0, error_malloc
-    mv s10, a0 # move o to s10
+    mv s10, a0
+    mv a6, a0
     
-    mv a6, a0 # o
-    
-    mv a0, s1 # move m1 array to first arg
-    lw a1, 0(s5) # move m1 rows to second arg
-    lw a2, 0(s6) # move m1 cols to third arg
-    
-    mv a3, s9 # move h array to fourth arg
-    lw a4, 0(s3) # move h rows to fifth arg
-    lw a5, 0(s8) # move h cols to sixth arg
-    
+    # Perform matrix multiplication
+    mv a0, s1
+    lw a1, 0(s5)
+    lw a2, 0(s6)
+    mv a3, s9
+    lw a4, 0(s3)
+    lw a5, 0(s8)
     jal matmul
     
+    # Restore registers
     lw a0, 0(sp)
     lw a1, 4(sp)
     lw a2, 8(sp)
@@ -251,58 +261,63 @@ classify:
     lw a4, 16(sp)
     lw a5, 20(sp)
     lw a6, 24(sp)
-    
     addi sp, sp, 28
-    
-    # Write output matrix o
+
+    # ==== Write output matrix o ====
     addi sp, sp, -16
-    
     sw a0, 0(sp)
     sw a1, 4(sp)
     sw a2, 8(sp)
     sw a3, 12(sp)
     
-    lw a0, 16(a1) # load filename string into first arg
-    mv a1, s10 # load array into second arg
-    lw a2, 0(s5) # load number of rows into fourth arg
-    lw a3, 0(s8) # load number of cols into third arg
-    
+    lw a1, 4(sp)
+    lw a0, 16(a1)
+    mv a1, s10
+    lw a2, 0(s5)
+    lw a3, 0(s8)
     jal write_matrix
     
     lw a0, 0(sp)
     lw a1, 4(sp)
     lw a2, 8(sp)
     lw a3, 12(sp)
-    
     addi sp, sp, 16
-    
-    # Compute and return argmax(o)
+
+    # ==== Compute argmax(o) ====
     addi sp, sp, -12
-    
     sw a0, 0(sp)
     sw a1, 4(sp)
     sw a2, 8(sp)
     
-    mv a0, s10 # load o array into first arg
-    lw t0, 0(s3)
-    lw t1, 0(s6)
-    mul a1, t0, t1 # load length of array into second arg
-    # FIXME: Replace 'mul' with your own implementation
+    mv a0, s10
+    lw t0, 0(s5)
+    lw t1, 0(s8)
+    
+    # Multiply for length
+    li a1, 0
+multiply_argmax:
+    beq t1, x0, multiply_argmax_done
+    andi t2, t1, 1
+    beq t2, x0, skip_add_argmax
+    add a1, a1, t0
+skip_add_argmax:
+    slli t0, t0, 1
+    srli t1, t1, 1
+    j multiply_argmax
+multiply_argmax_done:
     
     jal argmax
-    
-    mv t0, a0 # move return value of argmax into t0
+    mv t0, a0
     
     lw a0, 0(sp)
     lw a1, 4(sp)
     lw a2, 8(sp)
-    
-    addi sp, sp 12
+    addi sp, sp, 12
     
     mv a0, t0
 
-    # If enabled, print argmax(o) and newline
-    bne a2, x0, epilouge
+    # Print if not in silent mode
+    bne a2, x0, cleanup
     
     addi sp, sp, -4
     sw a0, 0(sp)
@@ -313,66 +328,53 @@ classify:
     
     lw a0, 0(sp)
     addi sp, sp, 4
-    
-    # Epilouge
-epilouge:
+
+cleanup:
+    # Save return value
     addi sp, sp, -4
     sw a0, 0(sp)
     
+    # Free all allocated memory
     mv a0, s0
     jal free
-    
     mv a0, s1
     jal free
-    
     mv a0, s2
     jal free
-    
     mv a0, s3
     jal free
-    
     mv a0, s4
     jal free
-    
     mv a0, s5
     jal free
-    
     mv a0, s6
     jal free
-    
     mv a0, s7
     jal free
-    
     mv a0, s8
     jal free
-    
     mv a0, s9
     jal free
-    
     mv a0, s10
     jal free
     
+    # Restore return value
     lw a0, 0(sp)
     addi sp, sp, 4
 
+    # Epilogue
     lw ra, 0(sp)
-    
-    lw s0, 4(sp) # m0 matrix
-    lw s1, 8(sp) # m1 matrix
-    lw s2, 12(sp) # input matrix
-    
-    lw s3, 16(sp) 
+    lw s0, 4(sp)
+    lw s1, 8(sp)
+    lw s2, 12(sp)
+    lw s3, 16(sp)
     lw s4, 20(sp)
-    
     lw s5, 24(sp)
     lw s6, 28(sp)
-    
     lw s7, 32(sp)
     lw s8, 36(sp)
-    
-    lw s9, 40(sp) # h
-    lw s10, 44(sp) # o
-    
+    lw s9, 40(sp)
+    lw s10, 44(sp)
     addi sp, sp, 48
     
     jr ra

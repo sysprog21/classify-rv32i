@@ -1,5 +1,4 @@
 .globl read_matrix
-
 .text
 # ==============================================================================
 # FUNCTION: Binary Matrix File Reader
@@ -30,83 +29,85 @@
 #   - Code 27: File access error (open/EOF)
 #   - Code 28: File closure error
 #   - Code 29: Data read error
-#
-# Memory Note:
-#   Caller is responsible for freeing returned matrix pointer
 # ==============================================================================
 read_matrix:
-    
     # Prologue
     addi sp, sp, -40
     sw ra, 0(sp)
-    sw s0, 4(sp)
-    sw s1, 8(sp)
-    sw s2, 12(sp)
-    sw s3, 16(sp)
-    sw s4, 20(sp)
-
-    mv s3, a1         # save and copy rows
-    mv s4, a2         # save and copy cols
-
-    li a1, 0
-
+    sw s0, 4(sp)     # File descriptor
+    sw s1, 8(sp)     # Total elements
+    sw s2, 12(sp)    # Matrix pointer
+    sw s3, 16(sp)    # Row pointer
+    sw s4, 20(sp)    # Col pointer
+    
+    # Save row and column pointers
+    mv s3, a1        # Save row pointer
+    mv s4, a2        # Save col pointer
+    
+    # Open file
+    li a1, 0         # Read-only mode
     jal fopen
-
     li t0, -1
-    beq a0, t0, fopen_error   # fopen didn't work
-
-    mv s0, a0        # file
-
-    # read rows n columns
-    mv a0, s0
-    addi a1, sp, 28  # a1 is a buffer
-
-    li a2, 8         # look at 2 numbers
-
+    beq a0, t0, fopen_error
+    mv s0, a0        # Save file descriptor
+    
+    # Read dimensions
+    mv a0, s0        # File descriptor
+    addi a1, sp, 28  # Buffer for dimensions
+    li a2, 8         # Read 8 bytes (2 integers)
     jal fread
-
     li t0, 8
     bne a0, t0, fread_error
-
-    lw t1, 28(sp)    # opening to save num rows
-    lw t2, 32(sp)    # opening to save num cols
-
-    sw t1, 0(s3)     # saves num rows
-    sw t2, 0(s4)     # saves num cols
-
-    # mul s1, t1, t2   # s1 is number of elements
-    # FIXME: Replace 'mul' with your own implementation
-
-    slli t3, s1, 2
-    sw t3, 24(sp)    # size in bytes
-
-    lw a0, 24(sp)    # a0 = size in bytes
-
+    
+    # Store dimensions
+    lw t1, 28(sp)    # Load rows
+    lw t2, 32(sp)    # Load cols
+    sw t1, 0(s3)     # Store rows
+    sw t2, 0(s4)     # Store cols
+    
+    # Calculate total size (rows * cols)
+    mv t3, t1        # Copy rows to t3
+    mv t4, t2        # Copy cols to t4
+    li s1, 0         # Initialize result
+    
+multiply:
+    beq t4, x0, multiply_done  # If multiplier is zero, done
+    andi t5, t4, 1            # Get LSB of multiplier
+    beqz t5, multiply_skip    # If LSB is 0, skip addition
+    add s1, s1, t3           # Add multiplicand to result
+multiply_skip:
+    slli t3, t3, 1          # Left shift multiplicand
+    srli t4, t4, 1          # Right shift multiplier
+    j multiply
+multiply_done:
+    
+    # Calculate bytes needed (elements * 4)
+    slli t6, s1, 2          # Multiply by 4 for bytes
+    sw t6, 24(sp)           # Save size in bytes
+    
+    # Allocate memory
+    mv a0, t6               # Size in bytes
     jal malloc
-
     beq a0, x0, malloc_error
-
-    # set up file, buffer and bytes to read
-    mv s2, a0        # matrix
-    mv a0, s0
-    mv a1, s2
-    lw a2, 24(sp)
-
+    mv s2, a0               # Save matrix pointer
+    
+    # Read matrix data
+    mv a0, s0              # File descriptor
+    mv a1, s2              # Buffer (matrix pointer)
+    lw a2, 24(sp)         # Number of bytes to read
     jal fread
-
-    lw t3, 24(sp)
-    bne a0, t3, fread_error
-
+    lw t0, 24(sp)
+    bne a0, t0, fread_error
+    
+    # Close file
     mv a0, s0
-
     jal fclose
-
     li t0, -1
-
     beq a0, t0, fclose_error
-
+    
+    # Return matrix pointer
     mv a0, s2
-
+    
     # Epilogue
     lw ra, 0(sp)
     lw s0, 4(sp)
@@ -115,7 +116,6 @@ read_matrix:
     lw s3, 16(sp)
     lw s4, 20(sp)
     addi sp, sp, 40
-
     jr ra
 
 malloc_error:

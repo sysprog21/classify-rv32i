@@ -1,5 +1,4 @@
 .globl abs
-
 .text
 # =================================================================
 # FUNCTION: Absolute Value Converter
@@ -18,11 +17,21 @@ abs:
     # Prologue
     ebreak
     # Load number from memory
-    lw t0 0(a0)
-    bge t0, zero, done
-
-    # TODO: Add your own implementation
-
+    lw t0, 0(a0)
+    bge t0, zero, done    # If number >= 0, skip negation
+    # If negative, negate the value
+    sub t0, zero, t0      # t0 = 0 - t0 (negate t0)
+    # Store negated value back to memory
+    sw t0, 0(a0)
 done:
     # Epilogue
     jr ra
+
+
+
+
+
+
+
+
+
